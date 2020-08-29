@@ -1,31 +1,39 @@
-# bot.py
-import asyncio
 import os
-import discord
+import random
 from dotenv import load_dotenv
+from discord.ext import commands
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-client = discord.Client()
+MESSAGE = [
+    'your meme was shit so i confiscated it',
+    'what do you think this is? r/funny? get this shit outta here',
+    'STOP! this is the meme police. you are under arrest for posting a shitty meme',
+    'damn bro, you got the whole squad laughing 😐',
+    '🚔🚔 WEE WOO WEE WOO WEE WOO 🚔🚔',
+    '**shit posts** do not belong in **shitposts**'
+]
+TICKET_MESSAGE = '`🧾1 Bad Meme ticket has been issued `'
+bot = commands.Bot(command_prefix='!')
 
 
-@client.event
+@bot.listen()
 async def on_ready():
-    print(f'{client.user} has connected to Discord!')
+    print(f'{bot.user} reporting for duty')
 
 
-@client.event
+@bot.listen()
 async def on_raw_reaction_add(payload):
-    channel = client.get_channel(payload.channel_id)
+    channel = bot.get_channel(payload.channel_id)
     message = await channel.fetch_message(payload.message_id)
-    user = client.get_user(payload.user_id)
+    if message.author == bot.user:
+        await channel.send('i\'m a bad bitch you can\'t kill me')
+        return
 
     if str(payload.emoji) == '🚨':
-        if message.author != client.user:
-            await message.delete()
-            await channel.send('your post was shit so i deleted it')
-        else:
-            await channel.send('you think i\'m gonna delete my own shit? bitch i\'m the police')
+        response = random.choice(MESSAGE)
+        await channel.send(f'<@!{message.author.id}> {response}')
+        await message.delete(delay=0.1)
 
 
-client.run(TOKEN)
+bot.run(TOKEN)
