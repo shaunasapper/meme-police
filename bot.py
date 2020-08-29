@@ -5,6 +5,7 @@ from discord.ext import commands
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+BOT_CHANNEL = 'bot-goes-brrr'
 MESSAGE = [
     'your meme was shit so i confiscated it',
     'what do you think this is? r/funny? get this shit outta here',
@@ -26,6 +27,9 @@ async def on_ready():
 async def on_raw_reaction_add(payload):
     channel = bot.get_channel(payload.channel_id)
     message = await channel.fetch_message(payload.message_id)
+    if str(channel) != BOT_CHANNEL:
+        return
+
     if message.author == bot.user:
         await channel.send('i\'m a bad bitch you can\'t kill me')
         return
