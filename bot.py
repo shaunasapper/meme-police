@@ -1,12 +1,13 @@
 import os
 import random
+import discord
 from dotenv import load_dotenv
 from discord.ext import commands
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-BOT_CHANNEL = 'bot-goes-brrr'
-MESSAGE = [
+bot_channel = 'bot-goes-brrr'
+RESPONSES = [
     'your meme was shit so i confiscated it',
     'what do you think this is? r/funny? get this shit outta here',
     'STOP! this is the meme police. you are under arrest for posting a shitty meme',
@@ -27,7 +28,9 @@ async def on_ready():
 async def on_raw_reaction_add(payload):
     channel = bot.get_channel(payload.channel_id)
     message = await channel.fetch_message(payload.message_id)
-    if str(channel) != BOT_CHANNEL:
+
+    # TODO: implement channel check to avoid boilerplate
+    if str(channel) != bot_channel:
         return
 
     if message.author == bot.user:
@@ -35,9 +38,30 @@ async def on_raw_reaction_add(payload):
         return
 
     if str(payload.emoji) == '🚨':
-        response = random.choice(MESSAGE)
+        response = random.choice(RESPONSES)
         await channel.send(f'<@!{message.author.id}> {response}')
         await message.delete(delay=0.1)
+
+
+@bot.command()
+async def restrict(ctx, args):
+    global bot_channel
+    channel = discord.utils.get(ctx.guild.text_channels, name=args)
+    if channel is None:
+        await ctx.send(f'can\'t find channel with name \"{args}\"')
+    else:
+        bot_channel = args
+        await ctx.send(f'successfully bound to channel {channel.mention}')
+
+
+@bot.command()
+async def uwu(ctx):
+    # TODO: implement channel check to avoid boilerplate
+    if str(ctx.channel) != bot_channel:
+        return
+    
+    await ctx.send('(◡ ω ◡)')
+
 
 
 bot.run(TOKEN)
