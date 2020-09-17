@@ -15,7 +15,7 @@ the discord bot that polices your bad memes (and also my very first python proje
 - [x] bot command to restrict functionality to a specific channel (`!restrict`)
 - [ ] display usage message if channel has not been set
     - [ ] give option to not set a channel restriction
-- [ ] channel check function that enforces restriction if set, or displays usage
+- [x] channel check function that enforces restriction
 - [x] cache deleted messages in a separate channel
     - [ ] make it so this channel can be configured during setup
     - [ ] show who voted to delete the meme in the embed

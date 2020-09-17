@@ -19,7 +19,12 @@ TICKET_MESSAGE = '`🧾1 Bad Meme ticket has been issued `'
 
 bot = commands.Bot(command_prefix='!')
 bot_channel = 'bot-goes-brrr'
+cache_channel = 'bot-cache'
 delete_threshold = 1
+
+
+async def is_bot_channel(ctx):
+    return ctx.channel.name == bot_channel
 
 
 @bot.listen()
@@ -31,7 +36,7 @@ async def on_ready():
 async def on_raw_reaction_add(payload):
     channel = bot.get_channel(payload.channel_id)
     message = await channel.fetch_message(payload.message_id)
-    cache = discord.utils.get(message.guild.text_channels, name="bot-cache")
+    cache = discord.utils.get(message.guild.text_channels, name=cache_channel)
     reactions = discord.utils.get(message.reactions, emoji=payload.emoji.name)
 
     if channel.name != bot_channel:
@@ -44,11 +49,7 @@ async def on_raw_reaction_add(payload):
 
     # conditions for deletion were met
     if payload.emoji.name == '🚨' and reactions.count == delete_threshold:
-        response = random.choice(RESPONSES)
-        img_url = message.attachments[0].url if message.attachments else None
-        await cache_message(cache, message.author, message.content, img_url)
-        await channel.send(f'<@!{message.author.id}> {response}')
-        await message.delete(delay=0.1)
+        await handle_delete(channel, cache, message)
 
 
 # restricts the bot to a certain channel
@@ -65,22 +66,31 @@ async def restrict(ctx, args):
 
 # easy test command that sends an emoji
 @bot.command()
+@commands.check(is_bot_channel)
 async def uwu(ctx):
     if str(ctx.channel) != bot_channel:
         return
     await ctx.send('(◡ ω ◡)')
 
 
-async def cache_message(channel, author, text=None, img=None):
+async def handle_delete(channel, cache, message):
+    img_url = message.attachments[0].url if message.attachments else None
+    response = random.choice(RESPONSES)
+
+    # build embed message
     embed = discord.Embed()
     embed.colour = discord.Colour.dark_red()
-    embed.set_author(name=author)
-    embed.description = text
+    embed.description = message.content
+    embed.set_author(name=message.author)
 
-    if img:
-        embed.set_image(url=img)
+    # add image
+    if img_url:
+        embed.set_image(url=img_url)
 
-    await channel.send(embed=embed)
+    # cache message, send response to original channel
+    await cache.send(embed=embed)
+    await channel.send(f'<@!{message.author.id}> {response}')
+    await message.delete(delay=0.1)
 
 
 bot.run(TOKEN)
