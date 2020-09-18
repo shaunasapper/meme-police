@@ -52,11 +52,11 @@ async def on_raw_reaction_add(payload):
         return
 
     # conditions for deletion were met
-    if payload.emoji.name == delete_emoji and reactions.count == delete_threshold:
-        await handle_delete(channel, cache, message)
+    if payload.emoji.name == delete_emoji and reactions.count >= delete_threshold:
+        await handle_delete(channel, cache, message, reactions)
 
     # conditions for reward were met
-    if payload.emoji.name == reward_emoji and reactions.count == reward_threshold:
+    if payload.emoji.name == reward_emoji and reactions.count >= reward_threshold:
         await channel.send(f'now that\'s a spicy meme <@!{message.author.id}>')
 
 
@@ -91,21 +91,27 @@ async def uwu(ctx):
     await ctx.send('(◡ ω ◡)')
 
 
-async def handle_delete(channel, cache, message):
+async def handle_delete(channel, cache, message, reactions):
     img_url = message.attachments[0].url if message.attachments else None
     response = random.choice(RESPONSES)
+
+    # build list of users that voted
+    voters = []
+    for user in (await reactions.users().flatten()):
+        voters.append(f'{user.name}#{user.discriminator}')
 
     # build embed message
     embed = discord.Embed()
     embed.colour = discord.Colour.dark_red()
     embed.description = message.content
     embed.set_author(name=message.author)
+    embed.set_footer(text=f'{", ".join(voters)} thought this meme sucked')
 
     # add image
     if img_url:
         embed.set_image(url=img_url)
 
-    # cache message, send response to original channel
+    # cache message with voters, send response to original channel
     await cache.send(embed=embed)
     await channel.send(f'<@!{message.author.id}> {response}')
     await message.delete(delay=0.1)
