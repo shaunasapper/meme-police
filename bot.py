@@ -18,13 +18,16 @@ RESPONSES = [
 TICKET_MESSAGE = '`🧾1 Bad Meme ticket has been issued `'
 
 bot = commands.Bot(command_prefix='!')
-bot_channel = 'bot-goes-brrr'
+bot_channel = None
 cache_channel = 'bot-cache'
+delete_emoji = '🚨'
 delete_threshold = 1
+reward_emoji = '🏆'
+reward_threshold = 1
 
 
 async def is_bot_channel(ctx):
-    return ctx.channel.name == bot_channel
+    return ctx.channel == bot_channel if bot_channel else True
 
 
 @bot.listen()
@@ -39,7 +42,8 @@ async def on_raw_reaction_add(payload):
     cache = discord.utils.get(message.guild.text_channels, name=cache_channel)
     reactions = discord.utils.get(message.reactions, emoji=payload.emoji.name)
 
-    if channel.name != bot_channel:
+    is_channel = await is_bot_channel(message)
+    if not is_channel:
         return
 
     # the bot won't delete it's own message
@@ -48,28 +52,42 @@ async def on_raw_reaction_add(payload):
         return
 
     # conditions for deletion were met
-    if payload.emoji.name == '🚨' and reactions.count == delete_threshold:
+    if payload.emoji.name == delete_emoji and reactions.count == delete_threshold:
         await handle_delete(channel, cache, message)
 
+    # conditions for reward were met
+    if payload.emoji.name == reward_emoji and reactions.count == reward_threshold:
+        await channel.send(f'now that\'s a spicy meme <@!{message.author.id}>')
 
-# restricts the bot to a certain channel
+
+# restricts the bot to a certain channel or removes restriction
 @bot.command()
-async def restrict(ctx, args):
+async def restrict(ctx, args=None):
     global bot_channel
-    channel = discord.utils.get(ctx.guild.text_channels, name=args)
-    if channel is None:
+
+    if args is None:
+        if bot_channel:
+            await ctx.send(f'currently bound to channel {bot_channel.mention} (to remove, `!restrict off`)')
+        else:
+            await ctx.send(f'not currently bound to a channel')
+        return
+
+    if args == ('off' or 'Off'):
+        bot_channel = None
+        await ctx.send(f'successfully removed channel restriction (to set again, `!restrict <channel-name>`)')
+        return
+
+    bot_channel = discord.utils.get(ctx.guild.text_channels, name=args)
+    if bot_channel is None:
         await ctx.send(f'can\'t find channel with name \"{args}\"')
     else:
-        bot_channel = args
-        await ctx.send(f'successfully bound to channel {channel.mention}')
+        await ctx.send(f'successfully bound to channel {bot_channel.mention}')
 
 
 # easy test command that sends an emoji
 @bot.command()
 @commands.check(is_bot_channel)
 async def uwu(ctx):
-    if str(ctx.channel) != bot_channel:
-        return
     await ctx.send('(◡ ω ◡)')
 
 
